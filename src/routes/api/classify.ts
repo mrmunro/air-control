@@ -156,6 +156,9 @@ export const Route = createFileRoute("/api/classify")({
                         stageSpan.end();
                         return finalOutput;
                       } catch (error: any) {
+                        const errMsg = error?.message || String(error);
+                        controller.enqueue(encoder.encode(`data: {"choices":[{"delta":{"content":"[STAGE: ERROR]\\n${errMsg}\\n"}}]}\n\n`));
+                        console.error(`Pipeline Error in Stage ${stageName}:`, error);
                         stageSpan.recordException(error);
                         stageSpan.end();
                         throw error;
@@ -229,9 +232,11 @@ export const Route = createFileRoute("/api/classify")({
                     tracerProvider.forceFlush().catch(console.error);
                   }
                 } catch (err: any) {
+                  console.error("Fatal Pipeline Error:", err);
                   parentSpan.recordException(err);
                   parentSpan.end();
-                  controller.error(err);
+                  controller.enqueue(encoder.encode("data: [DONE]\n\n"));
+                  controller.close();
                 }
               });
             },
