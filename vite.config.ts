@@ -9,7 +9,7 @@ export default defineConfig({
     tailwindcss(),
     viteTsConfigPaths({ projects: ["./tsconfig.json"] }),
     tanstackStart({
-      server: { entry: "server" },
+      server: { preset: "vercel", entry: "server" },
     }),
     viteReact(),
   ],

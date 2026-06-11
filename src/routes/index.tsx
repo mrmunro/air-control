@@ -43,6 +43,11 @@ import { streamLive } from "@/lib/classifier/liveStream";
 import { deriveProductName } from "@/lib/classifier/reports";
 
 export const Route = createFileRoute("/")({
+  validateSearch: (search: Record<string, unknown>) => {
+    return {
+      access: search.access as string | undefined,
+    }
+  },
   head: () => ({
     meta: [
       { title: "EU AI Act Compliance Engine" },
@@ -144,13 +149,15 @@ function FormatText({ text }: { text: string }) {
 }
 
 function Index() {
+  const { access } = Route.useSearch();
+  const isProd = import.meta.env.PROD;
+
   const [description, setDescription] = useState("");
   const [logs, setLogs] = useState<LogLine[]>([
     { kind: "system", text: "Ready. Input description and press CLASSIFY." },
   ]);
   const [running, setRunning] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
-  const settingsLocked = import.meta.env.PROD;
   const [stageStatus, setStageStatus] = useState<
     Record<StageName, StageStatus>
   >({
@@ -264,9 +271,18 @@ function Index() {
   };
 
   useEffect(() => {
-    if (termRef.current)
+    if (termRef.current) {
       termRef.current.scrollTop = termRef.current.scrollHeight;
+    }
   }, [logs]);
+
+  if (isProd && access !== import.meta.env.VITE_ACCESS_KEY) {
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-black text-[#FFFF00] font-mono text-sm tracking-widest uppercase">
+        Access Denied
+      </div>
+    );
+  }
 
   const appendLog = (l: LogLine) => setLogs((arr) => [...arr, l]);
 
@@ -623,19 +639,16 @@ function Index() {
                   EU AI Act Compliance Engine
                 </h1>
               </div>
-              <button
-                onClick={openSettings}
-                aria-label="Settings"
-                disabled={settingsLocked}
-                title={
-                  settingsLocked
-                    ? "Engine settings are locked in the published app"
-                    : "Settings"
-                }
-                className="rounded-md border border-black p-2 hover:bg-neutral-100 transition-colors disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-transparent"
-              >
-                <Settings size={16} strokeWidth={ICON_STROKE} />
-              </button>
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={() => setSettingsOpen((o) => !o)}
+                  aria-label="Settings"
+                  title="Settings"
+                  className="rounded-md border border-black p-2 hover:bg-neutral-100 transition-colors"
+                >
+                  <Settings size={16} strokeWidth={ICON_STROKE} />
+                </button>
+              </div>
             </header>
 
             <div className="flex flex-col gap-2">
@@ -802,16 +815,10 @@ function Index() {
                     </button>
                     <button
                       onClick={openSettings}
-                      disabled={settingsLocked}
-                      title={
-                        settingsLocked
-                          ? "Engine settings are locked in the published app"
-                          : "Open Settings"
-                      }
-                      className="border border-black bg-white px-3 py-1.5 text-[11px] uppercase tracking-[0.18em] hover:bg-neutral-100 inline-flex items-center gap-1.5 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-white"
+                      className="border border-black bg-white px-3 py-1.5 text-[11px] uppercase tracking-[0.18em] hover:bg-neutral-100 inline-flex items-center gap-1.5"
                     >
                       <Settings size={12} strokeWidth={ICON_STROKE} />
-                      {settingsLocked ? "Settings Locked" : "Open Settings"}
+                      Open Settings
                     </button>
                   </div>
                 </div>
@@ -1424,9 +1431,15 @@ function Index() {
                     onChange={(e) =>
                       setDraftConfig((c) => ({ ...c, apiKey: e.target.value }))
                     }
+                    disabled={isProd}
                     placeholder="sk-…  /  AIza…"
-                    className="font-mono text-[12px] p-2 bg-white border border-black outline-none focus:bg-[#FFFF00]/30"
+                    className="font-mono text-[11.5px] leading-5 w-full p-3 bg-white border border-black outline-none focus:bg-[#FFFF00]/20 disabled:bg-neutral-100 disabled:text-neutral-500 disabled:cursor-not-allowed"
                   />
+                  {isProd && (
+                    <div className="text-[10px] uppercase tracking-[0.16em] text-red-600 font-mono mt-1">
+                      Locked in production environment
+                    </div>
+                  )}
                   <select
                     value={draftConfig.apiProvider}
                     onChange={(e) =>
@@ -1444,20 +1457,39 @@ function Index() {
               </div>
 
               {/* Signals Rules */}
-              <ConfigTextArea
-                label="Signals Matrix Rules"
-                value={draftConfig.signalsRules}
-                onChange={(v) =>
-                  setDraftConfig((c) => ({ ...c, signalsRules: v }))
-                }
-                onReset={() =>
-                  setDraftConfig((c) => ({
-                    ...c,
-                    signalsRules: DEFAULT_SIGNALS_RULES,
-                  }))
-                }
-                minH={160}
-              />
+              <div className="flex flex-col gap-1.5">
+                  <div className="flex items-center justify-between border-b border-black pb-1 mb-1">
+                    <span className="text-[11px] uppercase tracking-[0.2em] font-bold">
+                      Signals Matrix Rules
+                    </span>
+                    <button
+                      onClick={() =>
+                        setDraftConfig((c) => ({
+                          ...c,
+                          signalsRules: DEFAULT_SIGNALS_RULES,
+                        }))
+                      }
+                      disabled={isProd}
+                      className="border border-black bg-white px-2 py-0.5 text-[10px] uppercase tracking-[0.16em] hover:bg-neutral-100 disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      Reset
+                    </button>
+                  </div>
+                  <textarea
+                    value={draftConfig.signalsRules}
+                    onChange={(e) =>
+                      setDraftConfig((c) => ({ ...c, signalsRules: e.target.value }))
+                    }
+                    disabled={isProd}
+                    spellCheck={false}
+                    className="font-mono text-[11.5px] leading-5 w-full h-[140px] p-3 bg-white border border-black outline-none focus:bg-[#FFFF00]/20 disabled:bg-neutral-100 disabled:text-neutral-500 disabled:cursor-not-allowed resize-y"
+                  />
+                  {isProd && (
+                    <div className="text-[10px] uppercase tracking-[0.16em] text-red-600 font-mono mt-1">
+                      Locked in production environment
+                    </div>
+                  )}
+                </div>
 
               {/* Markdown Template */}
               <ConfigTextArea
