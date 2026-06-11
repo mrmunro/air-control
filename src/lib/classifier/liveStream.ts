@@ -12,7 +12,8 @@ export type StreamParams = {
 };
 
 export async function streamLive(opts: StreamParams): Promise<void> {
-  const res = await fetch("/api/classify", {
+  const searchParams = typeof window !== 'undefined' ? window.location.search : '';
+  const res = await fetch(`/api/classify${searchParams}`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     signal: opts.signal,
