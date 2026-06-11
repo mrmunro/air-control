@@ -1,7 +1,5 @@
-import { createRequire } from "module";
 import Anthropic from "@anthropic-ai/sdk";
-
-const requireNode = createRequire(import.meta.url);
+import OpenAI from "openai";
 
 function getProvider() {
   return (process.env.LLM_PROVIDER || "gemini").toLowerCase();
@@ -23,14 +21,13 @@ function getModel() {
 }
 
 function getOpenAIClient(apiKey: string, provider: string) {
-  const OpenAIClass = requireNode("openai").default || requireNode("openai");
   if (provider === "gemini") {
-    return new OpenAIClass({
+    return new OpenAI({
       apiKey,
       baseURL: "https://generativelanguage.googleapis.com/v1beta/openai/",
     });
   }
-  return new OpenAIClass({ apiKey });
+  return new OpenAI({ apiKey });
 }
 
 export async function generateText(
