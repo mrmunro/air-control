@@ -16,6 +16,10 @@ import {
 } from "../../lib/classifier/templates";
 import { parsePartial } from "../../lib/classifier/parser";
 import { compileMarkdown } from "../../lib/classifier/reports";
+// @ts-ignore
+import signalsMatrixRaw from "../../../resources/signals_matrix.md?raw";
+const promptFiles = import.meta.glob("../../../resources/prompts/*.md", { query: "?raw", import: "default", eager: true }) as Record<string, string>;
+
 
 type Body = {
   systemPrompt?: string;
