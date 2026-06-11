@@ -1,15 +1,14 @@
 import { createFileRoute } from "@tanstack/react-router";
-import fs from "node:fs";
-import path from "node:path";
 import { marked } from "marked";
+// @ts-ignore
+import helpContentRaw from "../../../resources/help.md?raw";
 
 export const Route = createFileRoute("/api/help")({
   server: {
     handlers: {
       GET: async () => {
         try {
-          const filePath = path.join(process.cwd(), "resources", "help.md");
-          const markdownContent = fs.readFileSync(filePath, "utf-8");
+          const markdownContent = helpContentRaw;
           
           const parts = markdownContent.split("===TAB===");
           const overviewHtml = await marked.parse(parts[0] || "");

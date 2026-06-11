@@ -68,7 +68,13 @@ export const Route = createFileRoute("/api/classify")({
         }
 
         function resolvePrompt(promptName: string, fileName: string, defaultPrompt: string): string {
-          // Priority 1: File
+          // Priority 1: Vite bundled files (works in Vercel Serverless)
+          const targetKey = `../../../resources/prompts/${fileName}`;
+          if (promptFiles[targetKey]) {
+            return promptFiles[targetKey].trim();
+          }
+          
+          // Priority 2: Fallback to fs (for local dev edge cases if glob missed)
           const filePath = path.join(process.cwd(), `resources/prompts/${fileName}`);
           try {
             if (fs.existsSync(filePath)) {
@@ -78,7 +84,7 @@ export const Route = createFileRoute("/api/classify")({
             console.error(`Failed to load prompt file ${fileName}:`, e);
           }
 
-          // Priority 2: Phoenix (if dev)
+          // Priority 3: Phoenix (if dev)
           const isDev = process.env.NODE_ENV !== "production";
           if (isDev) {
             try {
@@ -90,11 +96,10 @@ export const Route = createFileRoute("/api/classify")({
               const output = execSync(`${pythonCmd} scripts/fetch_prompt.py "${promptName}" --tag development`, { encoding: "utf-8" }).trim();
               if (output) return output;
             } catch (e) {
-              // fallthrough
+              console.warn(`Could not fetch prompt ${promptName} via script. Falling back to default.`);
             }
           }
-
-          // Priority 3: Default
+          
           return defaultPrompt;
         }
 
@@ -102,14 +107,7 @@ export const Route = createFileRoute("/api/classify")({
         let signalsMatrixText = (body.signalsRules ?? "").toString().trim();
 
         if (!signalsMatrixText) {
-          try {
-            const matrixPath = path.join(process.cwd(), "resources/signals_matrix.md");
-            if (fs.existsSync(matrixPath)) {
-              signalsMatrixText = fs.readFileSync(matrixPath, "utf-8").trim();
-            }
-          } catch (e) {
-            console.error("Failed to load signals_matrix.md:", e);
-          }
+          signalsMatrixText = (signalsMatrixRaw || "").trim();
         }
         
         try {

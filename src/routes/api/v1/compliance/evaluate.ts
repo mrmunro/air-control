@@ -1,3 +1,8 @@
+// @ts-ignore
+import rulesPromptRaw from "../../../../../resources/prompts/prompt_rules.md?raw";
+
+// @ts-ignore
+
 import { createFileRoute } from "@tanstack/react-router";
 import fs from "node:fs";
 import path from "node:path";
@@ -65,13 +70,8 @@ export const Route = createFileRoute("/api/v1/compliance/evaluate")({
         const signalsRules = (body.signalsRules ?? "").toString() || DEFAULT_SIGNALS_RULES;
 
         let rulesPrompt = DEFAULT_RULES_PROMPT;
-        try {
-          const rulesPromptPath = path.join(process.cwd(), "resources/prompts/prompt_rules.md");
-          if (fs.existsSync(rulesPromptPath)) {
-            rulesPrompt = fs.readFileSync(rulesPromptPath, "utf-8").trim();
-          }
-        } catch (e) {
-          // ignore
+        if (rulesPromptRaw) {
+          rulesPrompt = rulesPromptRaw.trim();
         }
 
         try {
