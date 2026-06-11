@@ -5,16 +5,25 @@ import { AnthropicInstrumentation } from "@arizeai/openinference-instrumentation
 export let tracerProvider: any;
 
 export function setupPhoenix() {
-  tracerProvider = register({
-    projectName: "air-control",
-    url: "http://localhost:6006",
-  });
+  if (process.env.VERCEL || import.meta.env?.PROD) {
+    console.log("Running on Vercel/Production. Skipping local Phoenix instrumentation.");
+    return;
+  }
 
-  const openaiInstrumentation = new OpenAIInstrumentation();
-  openaiInstrumentation.enable();
+  try {
+    tracerProvider = register({
+      projectName: "air-control",
+      url: "http://localhost:6006",
+    });
 
-  const anthropicInstrumentation = new AnthropicInstrumentation();
-  anthropicInstrumentation.enable();
+    const openaiInstrumentation = new OpenAIInstrumentation();
+    openaiInstrumentation.enable();
 
-  console.log("Arize Phoenix OpenTelemetry instrumentation initialized.");
+    const anthropicInstrumentation = new AnthropicInstrumentation();
+    anthropicInstrumentation.enable();
+
+    console.log("Arize Phoenix OpenTelemetry instrumentation initialized.");
+  } catch (error) {
+    console.warn("Failed to initialize Phoenix instrumentation. Continuing without telemetry:", error);
+  }
 }
